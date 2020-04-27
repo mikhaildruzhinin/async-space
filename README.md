@@ -1,6 +1,7 @@
 # async-space
 
-This is a game about a spaceship traversing the cosmos that I created to practis asynchronous programming with Python.
+This is a game about a spaceship traversing the cosmos that I created to practise asynchronous programming with Python.
+
 ![gif](spaceship.gif)
 
 ### How to install
