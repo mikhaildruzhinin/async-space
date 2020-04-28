@@ -2,7 +2,7 @@ import time
 import curses
 import asyncio
 import random
-import itertools
+from itertools import cycle
 from curses_tools import draw_frame
 from curses_tools import read_controls
 from curses_tools import get_frame_size
@@ -62,7 +62,7 @@ async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_row
     while True:
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
         draw_frame(canvas, row, column, frame1, negative=True)
-        if max(max_y, row + rows_direction + frame_rows + 1) == max_y and (row + rows_direction) > 0:
+        if max(max_y, row + rows_direction + frame_rows) == max_y and (row + rows_direction) > 0:
             row += rows_direction
         if max(max_x, column + columns_direction + frame_columns + 1) == max_x and (column + columns_direction) > 0:
             column += columns_direction
@@ -71,18 +71,35 @@ async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_row
 
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
         draw_frame(canvas, row, column, frame2, negative=True)
-        if max(max_y, row + rows_direction + frame_rows + 1) == max_y and (row + rows_direction) > 0:
+        if max(max_y, row + rows_direction + frame_rows) == max_y and (row + rows_direction) > 0:
             row += rows_direction
         if max(max_x, column + columns_direction + frame_columns + 1) == max_x and (column + columns_direction) > 0:
             column += columns_direction
         draw_frame(canvas, row, column, frame1)
         await asyncio.sleep(0)
 
+# async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_rows, frame_columns):
+#     frame1, frame2 = frames
+#     # draw_frame(canvas, row, column, frame1)
+#     frame_iterator = cycle(frames)
+#     for frame in cycle(frames):
+#         rows_direction, columns_direction, space_pressed = read_controls(canvas)
+#         draw_frame(canvas, row, column, frame, negative=True)
+#         if max(max_y, row + rows_direction + frame_rows) == max_y and (row + rows_direction) > 0:
+#             row += rows_direction
+#         if max(max_x, column + columns_direction + frame_columns + 1) == max_x and (column + columns_direction) > 0:
+#             column += columns_direction
+
+#         draw_frame(canvas, row, column, next(frame_iterator))
+#         await asyncio.sleep(0)
+
 def draw(canvas):
     curses.curs_set(False)
     canvas.nodelay(True)
-    max_y, max_x = canvas.getmaxyx()
-    num_stars = int(0.05 * ((max_x - 2) * (max_y - 2)))
+    rows, columns = canvas.getmaxyx() # window.getmaxyx() возвращает не координаты крайней ячейки, а ширину и высоту окна 
+    max_y, max_x = rows - 1, columns - 1 # координаты крайней ячейки будут на 1 меньше ширины и высоты окна, потому что нумерация начинается с нуля
+    border_size = 2
+    num_stars = int(0.05 * ((max_x - border_size) * (max_y - border_size)))
 
     with open('files/rocket_frame_1.txt', 'rt') as src:
         rocket_frame_1 = src.read()
@@ -97,28 +114,26 @@ def draw(canvas):
     coroutines = []
 
     for i in range(num_stars):
-        row = random.randint(1, max_y - 2)
-        column = random.randint(1, max_x - 2)
+        row = random.randint(1, max_y - border_size / 2)
+        column = random.randint(1, max_x - border_size / 2)
         symbol = random.choice('+*.:∴')
         coroutine = blink(canvas, row, column, symbol)
         coroutines.append(coroutine)
 
-    coroutine = animate_spaceship(canvas, max_y - frame_rows - 1, max_x / 2 - frame_columns / 2 + 1, frames, max_x, max_y, frame_rows, frame_columns)
+    coroutine = animate_spaceship(canvas, max_y - frame_rows, max_x / 2 - frame_columns // 2, frames, max_x, max_y, frame_rows, frame_columns)
     coroutines.append(coroutine)
 
-    coroutine = fire(canvas, max_y - frame_rows - 1, max_x / 2)
+    coroutine = fire(canvas, max_y - frame_rows, max_x / 2)
     coroutines.append(coroutine)
 
     canvas.border()
 
-    while True:
+    while len(coroutines) > 0:
         for coroutine in coroutines.copy():
             try:
                 coroutine.send(None)
             except StopIteration:
                 coroutines.remove(coroutine)
-        if len(coroutines) == 0:
-            break
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
   
