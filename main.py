@@ -57,41 +57,30 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_rows, frame_columns):
-    frame1, frame2 = frames
-    draw_frame(canvas, row, column, frame1)
+    frames = cycle(frames)
+    frames_iterator = iter(frames)
+    draw_frame(canvas, row, column, next(frames_iterator))
     while True:
+        next(frames_iterator)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        draw_frame(canvas, row, column, frame1, negative=True)
-        if max(max_y, row + rows_direction + frame_rows) == max_y and (row + rows_direction) > 0:
+        draw_frame(canvas, row, column, next(frames_iterator), negative=True)
+
+        if min(max_y, row + rows_direction + frame_rows) == max_y:
+            row += (max_y - row - frame_rows)
+        elif row + rows_direction < 1:
+            row = 1
+        else:
             row += rows_direction
-        if max(max_x, column + columns_direction + frame_columns + 1) == max_x and (column + columns_direction) > 0:
+
+        if min(max_x, column + columns_direction + frame_columns) == max_x:
+            column += (max_x - column - frame_columns)
+        elif column + columns_direction < 1:
+            column = 1
+        else:
             column += columns_direction
-        draw_frame(canvas, row, column, frame2)
+        
+        draw_frame(canvas, row, column, next(frames_iterator))
         await asyncio.sleep(0)
-
-        rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        draw_frame(canvas, row, column, frame2, negative=True)
-        if max(max_y, row + rows_direction + frame_rows) == max_y and (row + rows_direction) > 0:
-            row += rows_direction
-        if max(max_x, column + columns_direction + frame_columns + 1) == max_x and (column + columns_direction) > 0:
-            column += columns_direction
-        draw_frame(canvas, row, column, frame1)
-        await asyncio.sleep(0)
-
-# async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_rows, frame_columns):
-#     frame1, frame2 = frames
-#     # draw_frame(canvas, row, column, frame1)
-#     frame_iterator = cycle(frames)
-#     for frame in cycle(frames):
-#         rows_direction, columns_direction, space_pressed = read_controls(canvas)
-#         draw_frame(canvas, row, column, frame, negative=True)
-#         if max(max_y, row + rows_direction + frame_rows) == max_y and (row + rows_direction) > 0:
-#             row += rows_direction
-#         if max(max_x, column + columns_direction + frame_columns + 1) == max_x and (column + columns_direction) > 0:
-#             column += columns_direction
-
-#         draw_frame(canvas, row, column, next(frame_iterator))
-#         await asyncio.sleep(0)
 
 def draw(canvas):
     curses.curs_set(False)
