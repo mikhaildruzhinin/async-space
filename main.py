@@ -57,13 +57,11 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_rows, frame_columns):
-    frames = cycle(frames)
-    frames_iterator = iter(frames)
-    draw_frame(canvas, row, column, next(frames_iterator))
-    while True:
-        next(frames_iterator)
+    old_frame = frames[0]
+    for frame in cycle(frames):
+        draw_frame(canvas, row, column, old_frame, negative=True)
+
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        draw_frame(canvas, row, column, next(frames_iterator), negative=True)
 
         if min(max_y, row + rows_direction + frame_rows) == max_y:
             row += (max_y - row - frame_rows)
@@ -79,7 +77,8 @@ async def animate_spaceship(canvas, row, column, frames, max_x, max_y, frame_row
         else:
             column += columns_direction
         
-        draw_frame(canvas, row, column, next(frames_iterator))
+        draw_frame(canvas, row, column, frame)
+        old_frame = frame
         await asyncio.sleep(0)
 
 def draw(canvas):
@@ -98,7 +97,7 @@ def draw(canvas):
 
     frame_rows, frame_columns = get_frame_size(rocket_frame_1)
 
-    frames = (rocket_frame_1, rocket_frame_2)
+    frames = [rocket_frame_1, rocket_frame_1, rocket_frame_2, rocket_frame_2]
 
     coroutines = []
 
@@ -117,7 +116,7 @@ def draw(canvas):
 
     canvas.border()
 
-    while len(coroutines) > 0:
+    while len(coroutines):
         for coroutine in coroutines.copy():
             try:
                 coroutine.send(None)
